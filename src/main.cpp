@@ -138,7 +138,9 @@ void endingScreen(){
   SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
-  SDL_Delay(10000);
+  SDL_Delay(3000);
+
+  SDL_DestroyWindow(window);
 }
 
 int main(int argv, char** args) {
