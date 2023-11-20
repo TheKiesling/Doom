@@ -18,7 +18,7 @@ const Color W = {255, 255, 255};
 
 const int WIDTH = 16;
 const int HEIGHT = 11;
-const int BLOCK = 25;
+const int BLOCK = 35;
 const int SCREEN_WIDTH = WIDTH * BLOCK;
 const int SCREEN_HEIGHT = HEIGHT * BLOCK;
 
@@ -47,8 +47,8 @@ public:
     player.a = M_PI / 4.0f;
     player.fov = M_PI / 3.0f;
 
-    scale = 50;
-    tsize = 128;
+    scale = 128;
+    tsize = 1024;
   }
 
   void load_map(const std::string& filename) {
@@ -72,13 +72,13 @@ public:
         int ty = ((cy - y) * tsize) / BLOCK;
 
         Color c = ImageLoader::getPixelColor(mapHit, tx, ty);
-        SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b , 255);
-        SDL_RenderDrawPoint(renderer, cx, cy);
+        SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 255);
+        SDL_RenderDrawPoint(renderer, cx / 4, cy / 4);
       }
     }
   }
 
-  Impact cast_ray(float a) {
+  Impact cast_ray(float a, bool viewMap) {
     float d = 0;
     std::string mapHit;
     int tx;
@@ -94,8 +94,18 @@ public:
       if (map[j][i] != ' ') {
         mapHit = map[j][i];
 
-        int hitx = x - i * BLOCK;
-        int hity = y - j * BLOCK;
+        int hitx;
+        int hity;
+
+        if (viewMap) {
+          hitx = x - i * BLOCK / 4; 
+          hity = y - j * BLOCK / 4;
+        }
+        else {
+          hitx = x - i * BLOCK; 
+          hity = y - j * BLOCK;
+        }
+
         int maxhit;
 
         if (hitx == 0 || hitx == BLOCK - 1) {
@@ -108,8 +118,8 @@ public:
 
         break;
       }
-     
-      point(x, y, W);
+      if (view == 1)
+        point(x / 4, y / 4, W);
       
       d += 1;
     }
@@ -123,56 +133,59 @@ public:
     for (int y = start; y < end; y++) {
       int ty = (y - start) * tsize / h;
       Color c = ImageLoader::getPixelColor(i.mapHit, i.tx, ty);
-      SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 255);
+      SDL_SetRenderDrawColor(renderer, view * c.r / 2, view * c.g / 2, view * c.b / 2 , 255);
 
       SDL_RenderDrawPoint(renderer, x, y);
     }
   }
  
   void render() {    
-    for (int x = 0; x < SCREEN_WIDTH; x += BLOCK) {
-      for (int y = 0; y < SCREEN_HEIGHT; y += BLOCK) {
-        int i = static_cast<int>(x / BLOCK);
-        int j = static_cast<int>(y / BLOCK);
-        
-        if (map[j][i] != ' ') {
-          std::string mapHit;
-          mapHit = map[j][i];
-          Color c = Color(255, 0, 0);
-          rect(x, y, mapHit);
+    if (view == 1) {
+      for (int x = 0; x < SCREEN_WIDTH; x += BLOCK) {
+        for (int y = 0; y < SCREEN_HEIGHT; y += BLOCK) {
+          int i = static_cast<int>(x / BLOCK );
+          int j = static_cast<int>(y / BLOCK );
+          
+          if (map[j][i] != ' ') {
+            std::string mapHit;
+            mapHit = map[j][i];
+            Color c = Color(255, 0, 0);
+            rect(x , y , mapHit);
+          }
         }
       }
-    }
 
-    for (int i = 1; i < SCREEN_WIDTH; i++) {
-      float a = player.a + player.fov / 2 - player.fov * i / SCREEN_WIDTH;
-      cast_ray(a);
+      for (int i = 1; i < SCREEN_WIDTH; i++) {
+        float a = player.a + player.fov / 2 - player.fov * i / SCREEN_WIDTH;
+        cast_ray(a, true);
+      }
     }
+    
 
     // draw right side of the screen
     
-    for (int i = 1; i < SCREEN_WIDTH; i++) {
+    for (int i = SCREEN_WIDTH / 2 - BLOCK *  2 * view; i < SCREEN_WIDTH / 2 + BLOCK * 2 * view; i++){
       double a = player.a + player.fov / 2.0 - player.fov * i / SCREEN_WIDTH;
-      Impact impact = cast_ray(a);
+      Impact impact = cast_ray(a, false);
       float d = impact.d;
       Color c = Color(255, 0, 0);
 
       if (d == 0) {
-        exit(1);
+        continue;
       }
 
-
-      int x = SCREEN_WIDTH + i;
-      float h = static_cast<float>(SCREEN_HEIGHT)/static_cast<float>(d) * static_cast<float>(scale);
+      int x = i;
+      float h = static_cast<float>(SCREEN_HEIGHT / 4)/static_cast<float>(d * cos(a - player.a)) * static_cast<float>(scale);
       draw_stake(x, h, impact);
     }
 
   }
 
   Player player;
-private:
+public:
   int scale;
   SDL_Renderer* renderer;
   std::vector<std::string> map;
   int tsize;
+  int view;
 };

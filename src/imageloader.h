@@ -14,7 +14,6 @@ class ImageLoader {
 public:
     // Initialize SDL_image
     static void init() {
-        SDL_Log("Initializing SDL_image");
         int imgFlags = IMG_INIT_PNG; 
         if (!(IMG_Init(imgFlags) & imgFlags)) {
             throw std::runtime_error("SDL_image could not initialize! SDL_image Error: " + std::string(IMG_GetError()));
@@ -68,7 +67,7 @@ public:
         return Color{color.r, color.g, color.b};
     }
 
-    static void render(SDL_Renderer* renderer, const std::string& key, int x, int y) {
+    static void render(SDL_Renderer* renderer, const std::string& key, int x, int y, int size = -1) {
         auto it = imageSurfaces.find(key);
         if (it == imageSurfaces.end()) {
             throw std::runtime_error("Image key not found!");
@@ -83,7 +82,13 @@ public:
         }
 
         // Set render destination and render the texture
-        SDL_Rect destRect = { x, y, targetSurface->w, targetSurface->h };
+        SDL_Rect destRect;
+        if (size == -1) {
+            destRect = { x, y, targetSurface->w, targetSurface->h };
+        }
+        else {
+            destRect = { x, y, size, size };
+        }
         SDL_RenderCopy(renderer, texture, NULL, &destRect);
 
         // Free the created texture
